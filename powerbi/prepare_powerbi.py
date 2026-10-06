@@ -15,9 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.churn_model import (  # noqa: E402
-    build_preprocessor,
+    build_model,
     load_data,
-    prepare_target,
+    prepare_features,
 )
 
 
@@ -25,45 +25,30 @@ RAW_PATH = ROOT / "data" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
 OUTPUT_PATH = ROOT / "powerbi" / "data" / "churn_scored.csv"
 
 
-def build_models(X_train, y_train):
+def build_models(preprocessor):
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.linear_model import LogisticRegression
-    from sklearn.pipeline import Pipeline
 
-    preprocessor, numeric_features, categorical_features = build_preprocessor(X_train)
-
-    models = {
-        "logistic_regression": Pipeline(
-            [
-                ("preprocessor", preprocessor),
-                (
-                    "model",
-                    LogisticRegression(
-                        max_iter=2000,
-                        class_weight="balanced",
-                        random_state=42,
-                    ),
-                ),
-            ]
+    return {
+        "logistic_regression": build_model(
+            preprocessor,
+            LogisticRegression(
+                max_iter=2000,
+                class_weight="balanced",
+                random_state=42,
+            ),
         ),
-        "random_forest": Pipeline(
-            [
-                ("preprocessor", preprocessor),
-                (
-                    "model",
-                    RandomForestClassifier(
-                        n_estimators=500,
-                        min_samples_leaf=5,
-                        class_weight="balanced",
-                        random_state=42,
-                        n_jobs=-1,
-                    ),
-                ),
-            ]
+        "random_forest": build_model(
+            preprocessor,
+            RandomForestClassifier(
+                n_estimators=500,
+                min_samples_leaf=5,
+                class_weight="balanced",
+                random_state=42,
+                n_jobs=-1,
+            ),
         ),
     }
-
-    return models, numeric_features, categorical_features
 
 
 def main():
@@ -72,7 +57,7 @@ def main():
 
     df = load_data(RAW_PATH)
     y = prepare_target(df["Churn"])
-    X = df.drop(columns=["Churn"])
+    X, y, preprocessor = prepare_features(df)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -82,7 +67,7 @@ def main():
         random_state=42,
     )
 
-    models, _, _ = build_models(X_train, y_train)
+    models = build_models(preprocessor)
 
     scores = {}
     for name, model in models.items():
