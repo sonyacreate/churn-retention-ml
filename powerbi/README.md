@@ -71,59 +71,31 @@
 
 То есть какая доля клиентов, которые действительно ушли, попадает в выбранную группу риска.
 
-## Как получить данные для Power BI
+## Данные и визуальная часть
 
-1. Скачать IBM Telco Customer Churn CSV.
-2. Положить файл в:
-   `data/WA_Fn-UseC_-Telco-Customer-Churn.csv`
-3. Установить зависимости из корня проекта.
-4. Запустить:
+Исходный датасет уже находится в репозитории в `data/WA_Fn-UseC_-Telco-Customer-Churn.csv`.
 
-```bash
-python powerbi/prepare_powerbi.py
-```
+Для визуальной части подготовлен `dashboard_summary.csv` с ключевыми показателями сегментов. Dashboard preview находится непосредственно в репозитории — ниже видны основные страницы, которые должны быть собраны в Power BI Desktop.
 
-Скрипт создаст:
+## Dashboard preview
 
-```text
-powerbi/
-└── data/
-    └── churn_scored.csv
-```
+### Overview
 
-В CSV будут исходные customer-level признаки и ML-поля:
+![Business overview](screenshots/01_overview.svg)
 
-- `churn_probability`;
-- `risk_bucket`;
-- `risk_rank`;
-- `risk_percentile`;
-- `is_top_5_pct`;
-- `is_top_10_pct`;
-- `is_top_20_pct`;
-- `is_top_30_pct`;
-- `is_top_50_pct`.
+### Customer risk
+
+![Customer risk](screenshots/02_ml_risk.svg)
+
+### Retention opportunity
+
+![Retention opportunity](screenshots/03_retention.svg)
 
 ## Подключение в Power BI
 
-В Power BI Desktop:
+В Power BI используется customer-level таблица с признаками клиента и результатами ML scoring. Dashboard повторяет логику проекта: сначала смотрим структуру churn, затем сегменты, затем risk ranking и capacity-based prioritization.
 
-**Home → Get data → Text/CSV → `powerbi/data/churn_scored.csv`**
 
-После загрузки таблицы можно строить визуализации непосредственно из customer-level данных.
-
-### Рекомендуемые фильтры
-
-Сверху страницы:
-
-- Contract;
-- Internet Service;
-- Payment Method;
-- tenure segment;
-- risk bucket.
-
-Фильтры должны менять все связанные графики, чтобы dashboard можно было использовать как исследовательский инструмент, а не только как статичный отчёт.
-
-## Важный момент по ML
 
 `risk_bucket` — это не готовая рекомендация «дать скидку».
 
