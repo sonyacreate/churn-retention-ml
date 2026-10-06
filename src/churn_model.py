@@ -21,6 +21,7 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     roc_auc_score,
+    permutation_importance,
 )
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -87,6 +88,32 @@ def evaluate(y_true, probabilities, threshold: float = 0.5) -> dict:
         "f1": f1_score(y_true, predictions, zero_division=0),
         "confusion_matrix": confusion_matrix(y_true, predictions).tolist(),
     }
+
+
+def permutation_feature_importance(model, X_test, y_test, n_repeats: int = 10) -> pd.DataFrame:
+    """Estimate feature importance on the untouched test set.
+
+    Permutation importance is measured on the full pipeline, so importance is
+    reported for original customer-level features rather than one-hot columns.
+    """
+    result = permutation_importance(
+        model,
+        X_test,
+        y_test,
+        scoring="average_precision",
+        n_repeats=n_repeats,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+    )
+    return (
+        pd.DataFrame({
+            "feature": X_test.columns,
+            "importance_mean": result.importances_mean,
+            "importance_std": result.importances_std,
+        })
+        .sort_values("importance_mean", ascending=False)
+        .reset_index(drop=True)
+    )
 
 
 def threshold_table(y_true, probabilities, thresholds=None) -> pd.DataFrame:
@@ -161,6 +188,9 @@ def main() -> None:
 
         print("\\nThreshold analysis:")
         print(threshold_table(y_test, probabilities).round(3).to_string(index=False))
+
+        print("\\nTop permutation features by PR-AUC impact:")
+        print(permutation_feature_importance(model, X_test, y_test).head(10).round(4).to_string(index=False))
 
 
 if __name__ == "__main__":
