@@ -88,4 +88,6 @@ Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · S
 
 ## Status
 
-Initial version: data validation, feature preparation, baseline/strong model comparison, threshold analysis and retention-oriented evaluation.
+Current version: data validation, leakage-safe feature preparation, Logistic Regression vs Random Forest, ROC-AUC/PR-AUC evaluation, threshold analysis, top-risk targeting and test-set permutation feature interpretation.
+
+Model quality is evaluated on a held-out test set. Final business recommendations are intentionally tied to the observed precision/recall and campaign capacity rather than an arbitrary 0.5 cutoff.
