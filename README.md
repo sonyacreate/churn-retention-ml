@@ -310,6 +310,20 @@ Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · S
 
 ---
 
+## Power BI — бизнес-слой
+
+ML-часть отвечает за оценку риска, а BI-слой показывает, где этот риск концентрируется и какие сегменты требуют внимания.
+
+### Dashboard preview
+
+![Churn overview](powerbi/screenshots/01_overview.svg)
+
+![Customer risk](powerbi/screenshots/02_ml_risk.svg)
+
+![Retention opportunity](powerbi/screenshots/03_retention.svg)
+
+Ключевые показатели визуальной части собраны в `powerbi/dashboard_summary.csv`. Исходный customer-level датасет также находится в репозитории.
+
 ## Статус
 
 Текущая версия проекта включает:
@@ -329,4 +343,4 @@ Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · S
 - структуру Power BI dashboard;
 - бизнес-интерпретацию результатов.
 
-Результаты анализа и ключевые метрики представлены в ноутбуке `notebooks/churn_analysis.ipynb`.
+Результаты анализа, модель и бизнес-визуализация представлены в ноутбуке и разделе `powerbi/`.
