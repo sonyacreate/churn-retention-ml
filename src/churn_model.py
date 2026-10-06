@@ -14,7 +14,6 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.calibration import calibration_curve
 from sklearn.metrics import (
     average_precision_score,
     confusion_matrix,
@@ -118,85 +117,77 @@ def permutation_feature_importance(model, X_test, y_test, n_repeats: int = 10) -
     )
 
 
-def threshold_table(y_true, probabilities, thresholds=None) -> pd.DataFrame:
-    if thresholds is None:
-        thresholds = np.arange(0.20, 0.81, 0.05)
-
+def threshold_table(y_true, probabilities):
     rows = []
-    actual_churners = int(np.sum(y_true == 1))
-
-    for threshold in thresholds:
-        predictions = (probabilities >= threshold).astype(int)
-        contacted = int(predictions.sum())
-        captured = int(((predictions == 1) & (y_true == 1)).sum())
-
-        rows.append({
-            "threshold": round(float(threshold), 2),
-            "customers_flagged": contacted,
-            "share_flagged": contacted / len(y_true),
-            "precision": precision_score(y_true, predictions, zero_division=0),
-            "recall": recall_score(y_true, predictions, zero_division=0),
-            "f1": f1_score(y_true, predictions, zero_division=0),
-            "churners_captured": captured,
-            "share_of_churners_captured": (
-                captured / actual_churners if actual_churners else np.nan
-            ),
-        })
-
+    for threshold in np.arange(0.20, 0.81, 0.05):
+        predicted = (probabilities >= threshold).astype(int)
+        flagged = int(predicted.sum())
+        precision = precision_score(y_true, predicted, zero_division=0)
+        recall = recall_score(y_true, predicted, zero_division=0)
+        f1 = f1_score(y_true, predicted, zero_division=0)
+        churners_captured = int(((predicted == 1) & (y_true == 1)).sum())
+        total_churners = int((y_true == 1).sum())
+        rows.append(
+            {
+                "threshold": round(float(threshold), 2),
+                "customers_flagged": flagged,
+                "share_flagged": flagged / len(y_true),
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+                "churners_captured": churners_captured,
+                "share_of_churners_captured": churners_captured / total_churners,
+            }
+        )
     return pd.DataFrame(rows)
 
 
-def main() -> None:
-    df = load_data()
-    X, y, preprocessor = prepare_features(df)
+def capacity_threshold_table(y_true, probabilities, capacities=(0.05, 0.10, 0.20, 0.30)):
+    """Select the score threshold implied by a fixed retention-team capacity."""
+    order = np.argsort(-probabilities)
+    y_sorted = np.asarray(y_true)[order]
+    p_sorted = np.asarray(probabilities)[order]
+    total_churners = int(y_sorted.sum())
+    rows = []
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, stratify=y, random_state=RANDOM_STATE
-    )
-
-    logistic = Pipeline([
-        ("preprocessor", preprocessor),
-        ("model", LogisticRegression(
-            max_iter=2000,
-            class_weight="balanced",
-            random_state=RANDOM_STATE,
-        )),
-    ])
-
-    _, _, rf_preprocessor = prepare_features(df)
-    random_forest = Pipeline([
-        ("preprocessor", rf_preprocessor),
-        ("model", RandomForestClassifier(
-            n_estimators=500,
-            min_samples_leaf=5,
-            class_weight="balanced",
-            random_state=RANDOM_STATE,
-            n_jobs=-1,
-        )),
-    ])
-
-    models = {
-        "logistic_regression": logistic,
-        "random_forest": random_forest,
-    }
-
-    for name, model in models.items():
-        model.fit(X_train, y_train)
-        probabilities = model.predict_proba(X_test)[:, 1]
-
-        print(f"\\n{name}")
-        for key, value in evaluate(y_test, probabilities).items():
-            print(f"{key}: {value}")
-
-        print("\\nThreshold analysis:")
-        print(threshold_table(y_test, probabilities).round(3).to_string(index=False))
-
-        print("\\nCalibration:")
-        print(calibration_metrics(y_test, probabilities))
-
-        print("\\nTop permutation features by PR-AUC impact:")
-        print(permutation_feature_importance(model, X_test, y_test).head(10).round(4).to_string(index=False))
+    for capacity in capacities:
+        n = max(1, int(np.ceil(len(y_true) * capacity)))
+        selected_y = y_sorted[:n]
+        selected_p = p_sorted[:n]
+        captured = int(selected_y.sum())
+        rows.append(
+            {
+                "capacity_share": capacity,
+                "customers_contacted": n,
+                "implied_threshold": float(selected_p[-1]),
+                "precision": float(selected_y.mean()),
+                "churners_captured": captured,
+                "share_of_churners_captured": captured / total_churners if total_churners else 0.0,
+            }
+        )
+    return pd.DataFrame(rows)
 
 
-if __name__ == "__main__":
-    main()
+def top_risk_table(y_true, probabilities, shares=(0.05, 0.10, 0.20, 0.30, 0.50)):
+    """Evaluate how much observed churn sits inside the highest-risk customers."""
+    order = np.argsort(-probabilities)
+    y_sorted = np.asarray(y_true)[order]
+    total_churners = int(y_sorted.sum())
+    rows = []
+
+    for share in shares:
+        n = max(1, int(np.ceil(len(y_true) * share)))
+        captured = int(y_sorted[:n].sum())
+        rows.append(
+            {
+                "top_share": share,
+                "customers": n,
+                "churners_captured": captured,
+                "share_of_churners_captured": captured / total_churners if total_churners else 0.0,
+                "precision": float(y_sorted[:n].mean()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+
