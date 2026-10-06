@@ -56,7 +56,6 @@ def main():
     from sklearn.model_selection import train_test_split
 
     df = load_data(RAW_PATH)
-    y = prepare_target(df["Churn"])
     X, y, preprocessor = prepare_features(df)
 
     X_train, X_test, y_train, y_test = train_test_split(
