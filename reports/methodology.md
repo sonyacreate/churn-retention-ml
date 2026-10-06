@@ -55,13 +55,19 @@ A threshold table is evaluated to show the trade-off between:
 
 This makes the model output interpretable as a retention prioritization tool.
 
-## 7. Risk ranking
+## 7. Feature interpretation
+
+Permutation importance is calculated on the untouched test set using PR-AUC as the scoring metric. This keeps interpretation at the original customer-feature level and avoids presenting one-hot encoded categories as if they were independent business variables.
+
+Feature importance is treated as an association with model performance, not as a causal explanation of churn.
+
+## 8. Risk ranking
 
 Customers are also ranked by predicted churn probability.
 
 For a retention campaign, a top-risk segment can be more useful than a binary prediction. The analysis therefore measures how much of the actual churn population is found inside the highest-risk customers.
 
-## 8. Limitations
+## 9. Limitations
 
 This dataset is observational and historical. A churn prediction model identifies customers associated with higher churn risk; it does not prove that contacting a customer will prevent churn.
 
