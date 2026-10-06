@@ -1,0 +1,13 @@
+metric,value
+customers,7043
+churn_rate,26.54
+month_to_month_churn_rate,42.71
+one_year_churn_rate,11.27
+two_year_churn_rate,2.83
+fiber_optic_churn_rate,41.89
+dsl_churn_rate,18.96
+no_internet_churn_rate,7.40
+electronic_check_churn_rate,45.29
+mailed_check_churn_rate,19.11
+bank_transfer_churn_rate,16.71
+credit_card_churn_rate,15.24
