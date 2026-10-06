@@ -1,31 +1,32 @@
-# Data
+# Данные
 
-The project uses the public IBM Telco Customer Churn dataset.
+В проекте используется публичный датасет **IBM Telco Customer Churn**.
 
-## Expected file
+## Ожидаемый файл
 
-Place the downloaded CSV here:
+Скачанный CSV нужно положить сюда:
 
 ```text
 data/WA_Fn-UseC_-Telco-Customer-Churn.csv
 ```
 
-The repository does not store the raw dataset.
+Исходный датасет не хранится в репозитории.
 
-## Target
+## Целевая переменная
 
-`Churn` is the binary target:
-- `Yes` — customer churned
-- `No` — customer stayed
+`Churn` — бинарная целевая переменная:
 
-## Important columns
+- `Yes` — клиент ушёл;
+- `No` — клиент остался.
 
-The dataset contains customer demographics, account characteristics, subscribed services, contract information, payment method and billing variables.
+## Важные столбцы
 
-`customerID` is treated as an identifier and is not used as a model feature.
+Датасет содержит демографию клиентов, характеристики аккаунта, подключённые услуги, информацию о контракте, способ оплаты и billing-параметры.
 
-`TotalCharges` may contain blank strings for customers with very short tenure. These values must be converted to numeric and handled as missing values during preprocessing.
+`customerID` рассматривается как идентификатор и не используется как признак модели.
 
-## Reproducibility
+`TotalCharges` может содержать пустые значения у клиентов с очень маленьким tenure. Они переводятся в numeric и обрабатываются как пропуски внутри preprocessing.
 
-Run the project from the repository root after placing the CSV in the path above.
+## Воспроизводимость
+
+После размещения CSV по указанному пути проект можно запускать из корня репозитория.
