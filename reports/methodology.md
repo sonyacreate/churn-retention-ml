@@ -72,3 +72,17 @@ For a retention campaign, a top-risk segment can be more useful than a binary pr
 This dataset is observational and historical. A churn prediction model identifies customers associated with higher churn risk; it does not prove that contacting a customer will prevent churn.
 
 The next step in a real product setting would be a retention experiment comparing an intervention group with a control group.
+
+## 10. ROC/PR-кривые и operating point
+
+В ноутбуке дополнительно строятся ROC и Precision-Recall curves. Для churn-задачи PR-кривая особенно полезна, потому что показывает компромисс между precision и recall для положительного класса.
+
+Threshold не фиксируется на 0.5 автоматически. Дополнительно рассчитываются operating points при ограничении retention capacity: 5%, 10%, 20% и 30% клиентской базы. Для каждого capacity выбирается соответствующий top-risk сегмент и измеряется доля фактического churn, попавшая в него.
+
+## 11. Calibration
+
+Для выбранной модели рассчитывается Brier score и строится calibration curve. Это отдельный аспект качества: модель может хорошо ранжировать клиентов, но при этом выдавать плохо откалиброванные вероятности.
+
+## 12. Важное ограничение интерпретации
+
+Permutation feature importance показывает, насколько ухудшается выбранная метрика модели при перемешивании конкретного признака. Это не является доказательством причинного влияния признака на churn.
