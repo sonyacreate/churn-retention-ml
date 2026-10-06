@@ -14,6 +14,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
+from sklearn.calibration import calibration_curve
 from sklearn.metrics import (
     average_precision_score,
     confusion_matrix,
@@ -22,6 +23,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
     permutation_importance,
+    brier_score_loss,
 )
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -188,6 +190,9 @@ def main() -> None:
 
         print("\\nThreshold analysis:")
         print(threshold_table(y_test, probabilities).round(3).to_string(index=False))
+
+        print("\\nCalibration:")
+        print(calibration_metrics(y_test, probabilities))
 
         print("\\nTop permutation features by PR-AUC impact:")
         print(permutation_feature_importance(model, X_test, y_test).head(10).round(4).to_string(index=False))
