@@ -1,70 +1,209 @@
-# Customer Churn & Retention — ML
+# Churn & Retention — ML
 
-## Business problem
+## О проекте
 
-Customer churn is not only a classification problem. The useful question is:
+Это проект по прогнозированию оттока клиентов (**customer churn**) с упором не на формальное «угадать, уйдёт клиент или нет», а на более практическую задачу:
 
-> **Which customers are most likely to leave, and how can a retention team prioritize them?**
+> **Каких клиентов имеет смысл считать наиболее рискованными и кого retention-команде стоит приоритизировать в первую очередь?**
 
-This project builds a churn prediction workflow from raw customer-level data and turns model scores into an actionable risk ranking.
+Модель рассчитывает вероятность оттока для каждого клиента, после чего эти вероятности используются для построения **risk ranking** — списка клиентов от наиболее до наименее рискованных.
 
-The goal is not to maximize accuracy. The focus is on:
-- preventing target leakage;
-- building reproducible customer features;
-- comparing an interpretable baseline with a stronger model;
-- evaluating ROC-AUC **and** PR-AUC;
-- choosing an operating threshold instead of blindly using 0.5;
-- estimating how much of the churn population is captured among the highest-risk customers;
-- translating model output into retention segments.
+Поэтому здесь важна не только классификация, но и связь между ML-моделью и реальным бизнес-сценарием удержания клиентов.
 
-## Dataset
+---
 
-The project uses the public **IBM Telco Customer Churn** dataset.
+## Бизнес-задача
 
-The dataset is intentionally not committed to the repository. Download the CSV and place it at:
+Представим, что у компании есть ограниченный ресурс на удержание клиентов: например, менеджеры могут связаться только с частью клиентской базы.
+
+Просто разделить всех клиентов на churn / no churn недостаточно.
+
+Нам важнее понять:
+
+- насколько хорошо модель ранжирует клиентов по риску;
+- сколько реальных уходов находится среди top-risk клиентов;
+- сколько клиентов придётся обработать, чтобы поймать значительную долю будущего churn;
+- какой threshold выбрать при ограниченной ёмкости retention-команды.
+
+**Главная идея проекта:** модель должна помогать принимать решение о том, **кого обрабатывать первым**, а не просто выдавать красивый accuracy.
+
+---
+
+## Датасет
+
+Используется публичный датасет **IBM Telco Customer Churn**.
+
+В нём есть информация о:
+
+- клиентах;
+- подключённых услугах;
+- типе контракта;
+- способе оплаты;
+- ежемесячных и общих расходах;
+- сроке обслуживания;
+- демографических характеристиках;
+- факте оттока.
+
+Целевая переменная:
+
+- `Churn = Yes` — клиент ушёл;
+- `Churn = No` — клиент остался.
+
+Исходный CSV намеренно **не хранится в репозитории**.
+
+После скачивания его нужно положить сюда:
 
 `data/WA_Fn-UseC_-Telco-Customer-Churn.csv`
 
-See [data/README.md](data/README.md) for the expected schema and loading instructions.
+Подробнее о структуре данных — в [data/README.md](data/README.md).
 
-## Analytical workflow
+---
 
-1. Data quality and target definition
-2. Exploratory analysis of churn
-3. Train/test split with stratification
-4. Preprocessing inside sklearn pipelines
-5. Logistic Regression baseline
-6. Tree-based model
-7. ROC-AUC / PR-AUC / precision / recall / F1
-8. Threshold sensitivity
-9. Risk ranking and top-risk customer coverage
-10. Feature interpretation
-11. Retention recommendations and limitations
+## Что делаем с данными
 
-## Why PR-AUC matters
+Перед моделированием:
 
-Churn is usually the minority class. A model can have a good accuracy while being practically useless for identifying customers who are going to leave.
+1. проверяем структуру и обязательные столбцы;
+2. проверяем дубликаты и пропуски;
+3. переводим `TotalCharges` в числовой формат;
+4. кодируем целевую переменную `Churn`;
+5. исключаем `customerID`, потому что это идентификатор;
+6. делим данные на train/test со **stratification**;
+7. preprocessing выполняется внутри `sklearn Pipeline`.
 
-Therefore the project treats **PR-AUC, recall and precision for the churn class** as important decision metrics alongside ROC-AUC.
+Последний пункт особенно важен: параметры преобразований обучаются только на train, поэтому информация из test не попадает в preprocessing.
 
-## Leakage control
+---
 
-The target is `Churn`. `customerID` is excluded because it is an identifier rather than a predictive customer attribute.
+## Модели
 
-All preprocessing steps are fitted only on the training data through sklearn pipelines. This prevents information from the test set leaking into encoding or scaling.
+### 1. Logistic Regression
 
-## Business layer
+Используется как интерпретируемый baseline.
 
-The model produces a probability of churn for every customer in the test set. Instead of saying "probability > 0.5 = churn", the project also evaluates different thresholds and a top-risk segment.
+Она нужна не только для сравнения качества. Логистическая регрессия даёт понятную отправную точку и позволяет анализировать направление влияния признаков через коэффициенты.
 
-This separates two questions:
+### 2. Random Forest
 
-- **prediction:** how well does the model rank churn risk?
-- **action:** which customers should a retention team contact first?
+Используется как нелинейная модель для сравнения с baseline.
 
-A threshold is therefore a business operating point, not a universal mathematical constant.
+Она может учитывать нелинейные зависимости и взаимодействия признаков, которые линейная модель может не уловить.
 
-## Repository structure
+Я не ставила целью подобрать «самую сложную модель». Задача проще: проверить, даёт ли более сложная модель заметное улучшение именно в полезном для бизнеса ранжировании.
+
+---
+
+## Как оцениваем модель
+
+Основные метрики:
+
+- **ROC-AUC** — насколько хорошо модель разделяет churn и non-churn по всему диапазону threshold;
+- **PR-AUC** — особенно важна при дисбалансе классов;
+- **Precision** — какая доля клиентов, которых мы считаем рискованными, действительно ушла;
+- **Recall** — какую долю ушедших клиентов модель смогла найти;
+- **F1** — баланс precision и recall;
+- **Brier score** — насколько хорошо прогнозируемые вероятности соответствуют реальной частоте события;
+- **confusion matrix** — для понимания ошибок при выбранном threshold.
+
+Accuracy здесь не является основной метрикой: модель может получить неплохую accuracy, почти всегда выбирая класс «клиент не уйдёт», и при этом плохо находить churn.
+
+---
+
+## Почему PR-AUC важнее одной accuracy
+
+Churn — меньший класс.
+
+Поэтому нас интересует не только общее количество правильных предсказаний, а то, насколько хорошо модель находит именно клиентов с риском ухода.
+
+Например, retention-команде гораздо полезнее модель, которая хорошо находит потенциальный churn, даже если при этом она ошибочно помечает часть лояльных клиентов, чем модель с высокой accuracy, которая почти всех считает безопасными.
+
+---
+
+## Threshold — это бизнес-решение
+
+Я не считаю `0.5` каким-то магическим правильным threshold.
+
+Например:
+
+- threshold `0.30` → отмечаем больше клиентов и ловим больше потенциального churn;
+- threshold `0.60` → список меньше, но precision обычно выше;
+- threshold `0.80` → работаем только с небольшой группой наиболее рискованных клиентов.
+
+Поэтому в проекте строится таблица threshold analysis:
+
+- сколько клиентов попадёт в retention-сегмент;
+- какая будет precision;
+- какой recall;
+- сколько churn-клиентов поймаем;
+- какую долю всех churn-клиентов покрываем.
+
+Это позволяет выбрать operating point исходя из реальной ёмкости retention-команды.
+
+---
+
+## Risk ranking
+
+Отдельно клиенты сортируются по предсказанной вероятности churn.
+
+После этого проверяется, какая доля реальных churn-клиентов находится среди:
+
+- top 5%;
+- top 10%;
+- top 20%;
+- top 30%;
+- top 50%.
+
+Для бизнеса это часто полезнее обычного бинарного предсказания.
+
+Если retention-команда может обработать только 10% базы, главный вопрос будет не «какой у модели F1?», а:
+
+> **какую долю будущего churn мы сможем покрыть, работая только с top 10% по риску?**
+
+---
+
+## Интерпретация признаков
+
+Для модели рассчитывается **permutation feature importance** на отложенной test-выборке.
+
+Используется PR-AUC как scoring metric.
+
+Это позволяет увидеть, какие исходные клиентские признаки сильнее всего связаны с качеством churn ranking.
+
+Важно: feature importance показывает связь признака с прогнозом модели, а **не доказывает причинность**.
+
+---
+
+## Проверка качества вероятностей
+
+Для retention-сценария важно не только правильно расположить клиентов по риску.
+
+Если модель говорит:
+
+> вероятность churn = 0.80
+
+хочется, чтобы такая вероятность была хотя бы примерно сопоставима с реальной частотой churn в подобных группах.
+
+Поэтому дополнительно считается **Brier score** и анализируется калибровка вероятностей.
+
+Это особенно полезно, если prediction используется дальше для приоритизации кампаний или расчёта ожидаемого эффекта.
+
+---
+
+## Контроль leakage
+
+`customerID` исключён из модели, поскольку это идентификатор.
+
+Все imputation, scaling и one-hot encoding находятся внутри `sklearn Pipeline`.
+
+Таким образом, preprocessing обучается только на train.
+
+Test используется только для финальной оценки.
+
+Это позволяет избежать ситуации, когда информация из test случайно влияет на обучение модели.
+
+---
+
+## Структура проекта
 
 ```text
 churn-retention-ml/
@@ -82,12 +221,103 @@ churn-retention-ml/
 └── README.md
 ```
 
-## Stack
+### Что где находится
 
-Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · SQL · Jupyter
+- `notebooks/churn_analysis.ipynb` — основной аналитический разбор;
+- `src/churn_model.py` — воспроизводимый ML pipeline;
+- `sql/customer_features.sql` — подготовка customer-level признаков через SQL;
+- `reports/methodology.md` — описание методологии и ограничений;
+- `data/README.md` — инструкция по подготовке исходного датасета.
 
-## Status
+---
 
-Current version: data validation, leakage-safe feature preparation, Logistic Regression vs Random Forest, ROC-AUC/PR-AUC evaluation, threshold analysis, top-risk targeting and test-set permutation feature interpretation.
+## SQL-часть
 
-Model quality is evaluated on a held-out test set. Final business recommendations are intentionally tied to the observed precision/recall and campaign capacity rather than an arbitrary 0.5 cutoff.
+SQL используется не ради демонстрации синтаксиса.
+
+В `customer_features.sql` формируется customer-level набор признаков из исходных данных.
+
+В частности, рассчитываются:
+
+- `avg_monthly_spend`;
+- сегменты по tenure;
+- характеристики контракта;
+- услуги;
+- способ оплаты;
+- billing-параметры;
+- целевая переменная churn.
+
+Для SQL используется DuckDB.
+
+---
+
+## Ограничения проекта
+
+### 1. Это predictive model, а не causal model
+
+Высокая вероятность churn не означает, что клиент обязательно уйдёт.
+
+И тем более она не означает, что звонок менеджера или скидка его удержит.
+
+Чтобы ответить на второй вопрос, нужен отдельный retention experiment с control group.
+
+### 2. Датасет исторический
+
+Модель обучается на исторических данных и может хуже работать при изменении поведения клиентов, тарифов или продукта.
+
+### 3. Threshold зависит от бизнеса
+
+Оптимальный threshold нельзя выбрать только по математической метрике.
+
+Он зависит от:
+
+- количества клиентов, которых команда реально может обработать;
+- стоимости контакта;
+- стоимости retention-оффера;
+- стоимости потерянного клиента.
+
+---
+
+## Следующий бизнес-шаг
+
+В реальном продукте я бы не останавливалась на вопросе:
+
+> «Кто уйдёт?»
+
+Следующий этап:
+
+1. построить churn score;
+2. выбрать ограниченный retention-сегмент;
+3. сформировать разные intervention strategies;
+4. разделить клиентов на treatment/control;
+5. измерить фактическое снижение churn;
+6. сравнить эффект с затратами на удержание.
+
+То есть ML-модель отвечает на вопрос **«кого приоритизировать?»**, а эксперимент — на вопрос **«помогает ли наше действие удержать клиента?»**.
+
+---
+
+## Стек
+
+Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · SQL · DuckDB · Jupyter
+
+---
+
+## Статус
+
+Текущая версия проекта включает:
+
+- проверку качества данных;
+- leakage-safe preprocessing;
+- Logistic Regression как baseline;
+- Random Forest как нелинейный benchmark;
+- ROC-AUC и PR-AUC;
+- precision / recall / F1;
+- threshold analysis;
+- risk ranking;
+- top-risk customer coverage;
+- permutation feature importance;
+- проверку калибровки вероятностей;
+- бизнес-интерпретацию результатов.
+
+Реальные значения метрик намеренно не прописываются в README до полноценного запуска на исходном CSV — я не хочу подставлять выдуманные цифры.
