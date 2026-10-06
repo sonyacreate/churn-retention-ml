@@ -217,6 +217,10 @@ churn-retention-ml/
 │   └── churn_model.py
 ├── reports/
 │   └── methodology.md
+├── powerbi/
+│   ├── README.md
+│   ├── measures.md
+│   └── prepare_powerbi.py
 ├── requirements.txt
 └── README.md
 ```
@@ -227,6 +231,9 @@ churn-retention-ml/
 - `src/churn_model.py` — воспроизводимый ML pipeline;
 - `sql/customer_features.sql` — подготовка customer-level признаков через SQL;
 - `reports/methodology.md` — описание методологии и ограничений;
+- `powerbi/README.md` — структура бизнес-дашборда и сценарий его использования;
+- `powerbi/measures.md` — основные DAX measures;
+- `powerbi/prepare_powerbi.py` — подготовка customer-level данных с ML risk score;
 - `data/README.md` — инструкция по подготовке исходного датасета.
 
 ---
@@ -299,7 +306,7 @@ SQL используется не ради демонстрации синтак
 
 ## Стек
 
-Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · SQL · DuckDB · Jupyter
+Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · SQL · DuckDB · Power BI · DAX · Jupyter
 
 ---
 
@@ -318,6 +325,8 @@ Python · pandas · NumPy · scikit-learn · SciPy · Matplotlib · seaborn · S
 - top-risk customer coverage;
 - permutation feature importance;
 - проверку калибровки вероятностей;
+- customer-level risk scoring для BI;
+- структуру Power BI dashboard;
 - бизнес-интерпретацию результатов.
 
 Результаты анализа и ключевые метрики представлены в ноутбуке `notebooks/churn_analysis.ipynb`.
